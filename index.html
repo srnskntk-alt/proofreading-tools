@@ -5,20 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>校正ツール</title>
 
-  <!-- ✅ ファビコン（同階層に favicon.png を置いてね。更新時は ?v=2 等でキャッシュ回避） -->
+  <!-- ✅ ファビコン（同階層に favicon.png を置く。更新時は ?v=2 等でキャッシュ回避） -->
   <link rel="icon" href="favicon.png?v=1" type="image/png">
 
   <style>
     :root{
-      --bg:#111; --panel:#181818; --ink:#eee; --muted:#a8b0bb;
-      --border:#333; --accent:#7c9cff;
-      --hit:#f66;         /* 通常ハイライト（赤） */
-      --hit-active:#46e6c2; /* 選択中のみの色（青緑系） */
+      --bg:#111; --panel:#181818; --ink:#f3f4f6; --muted:#a8b0bb;
+      --border:#2f2f2f; --accent:#86b3ff;
+      --hit:#ff6b6b;         /* 通常ハイライト（赤） */
+      --hit-active:#46e6c2;  /* 選択中のみ色 */
+      --table-line:#3a3a3a;  /* 表の枠線 */
+      --zebra:#151515;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-    a{color:var(--accent);text-decoration:none}
     header{position:sticky;top:0;background:#1a1a1a;border-bottom:1px solid var(--border);z-index:20}
     header .wrap{max-width:1100px;margin:0 auto;padding:10px 12px;display:flex;gap:12px;align-items:center}
     h1{margin:0;font-size:18px}
@@ -40,30 +41,47 @@
     .out{background:#0b0b0b;border:1px solid var(--border);border-radius:8px;padding:12px;min-height:120px;white-space:pre-wrap;line-height:1.7;max-height:420px;overflow:auto}
     mark.hit{background:transparent;color:var(--hit);padding:0 1px;border-bottom:2px solid var(--hit)}
     mark.hit.active{color:var(--hit-active);border-color:var(--hit-active)}
-    table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid var(--border);padding:6px 8px;text-align:left;vertical-align:top}
-    thead th{position:sticky;top:0;background:#202020}
-    tr:hover{background:#1b1b1b}
     .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px;color:#cbd5e1}
     .kbd{font:12px ui-monospace;background:#171717;border:1px solid #2b2b2b;border-bottom-width:2px;padding:2px 6px;border-radius:8px}
     .space{height:8px}
 
-    /* ===== サイドドロワー（用語一覧） ===== */
-    .drawer{position:fixed;top:0;right:0;height:100%;width:460px;max-width:92vw;background:#121212;border-left:1px solid var(--border);transform:translateX(100%);transition:transform .25s ease;z-index:40;display:flex;flex-direction:column}
+    /* ===== 右ドロワー（用語一覧） ===== */
+    .drawer{position:fixed;top:0;right:0;height:100%;width:640px;max-width:96vw;background:#121212;border-left:1px solid var(--border);transform:translateX(100%);transition:transform .22s ease;z-index:40;display:flex;flex-direction:column}
     .drawer.open{transform:translateX(0)}
-    .drawer .hd{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-    .drawer .bd{padding:10px 12px;overflow:auto}
+    .drawer .hd{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center}
+    .drawer .bd{padding:10px 12px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+
+    /* 開閉ハンドル（◁ / ▷ を切り替え）*/
     .drawerHandle{
       position:fixed;right:0;top:50%;transform:translateY(-50%);
       background:#1a1a1a;border:1px solid var(--border);border-right:none;border-top-left-radius:10px;border-bottom-left-radius:10px;
-      padding:10px 8px;color:var(--ink);cursor:pointer;z-index:41
+      padding:10px 10px;color:var(--ink);cursor:pointer;z-index:41;user-select:none
     }
-    .x{background:transparent;border:none;color:#ff6b6b;font-weight:700;cursor:pointer}
-    .table-terms{min-width:880px;border-collapse:separate;border-spacing:0 6px}
-    .table-terms th{font-size:13px;color:#d1d5db;border-bottom:1px solid var(--border);padding:6px 8px;background:#161616;position:sticky;top:0}
-    .table-terms td{padding:4px 8px;border-bottom:1px dotted #2a2a2a}
-    .chip{display:inline-flex;align-items:center;gap:6px;background:#0b0b0b;border:1px solid #2a2a2a;border-radius:999px;padding:2px 8px}
-    .chip .del{color:#fda4af;border:none;background:transparent;cursor:pointer}
+
+    /* タブ */
+    .tabs{display:flex;flex-wrap:wrap;gap:6px}
+    .tab{border:1px solid var(--border);background:#161616;color:#d1d5db;padding:6px 10px;border-radius:999px;cursor:pointer;font-size:13px}
+    .tab.active{background:#243043;border-color:#37517a;color:#e8f0ff}
+    .tab .count{font-size:12px;color:#aab2bf;margin-left:6px}
+
+    /* 検索ボックス */
+    .searchRow{display:flex;gap:8px;align-items:center}
+    .searchRow input[type=text]{flex:1}
+
+    /* テーブル（枠線強めで“表計算”感） */
+    .tableWrap{border:1px solid var(--table-line);border-radius:8px;overflow:auto;background:#0e0e0e}
+    table.terms{width:100%;border-collapse:collapse;min-width:520px}
+    table.terms thead th{position:sticky;top:0;background:#161616;border-bottom:2px solid var(--table-line);padding:8px 10px;text-align:left}
+    table.terms td{padding:8px 10px;border-bottom:1px solid var(--table-line);vertical-align:top}
+    table.terms tr:nth-child(even){background:var(--zebra)}
+    .td-initial{width:64px;font-weight:700;color:#e5e7eb}
+    .td-word{width:40%}
+    .td-suggest{width:40%}
+    .td-del{width:42px}
+    .del{color:#fda4af;border:none;background:transparent;cursor:pointer;font-size:16px;line-height:1}
+
+    /* 小さな補助 */
+    .muted-sm{color:#a8b0bb;font-size:12px}
   </style>
 </head>
 <body>
@@ -177,29 +195,47 @@
     </section>
   </main>
 
-  <!-- 5. 右側スライド・用語一覧（品詞ごと / よみ順） -->
+  <!-- 右側ドロワー：品詞タブ＋検索＋表（読み頭文字｜用語｜推奨｜×） -->
   <aside id="drawer" class="drawer" aria-hidden="true">
     <div class="hd">
-      <strong>用語一覧（品詞カラム / ひらがな順）</strong>
-      <button id="closeDrawer" class="btn-ghost">▷ 閉じる</button>
+      <strong>用語一覧</strong>
+      <span class="muted-sm">（品詞タブ／読み順）</span>
     </div>
     <div class="bd">
-      <div class="muted" style="margin-bottom:8px">各用語の「×」で削除できます。</div>
-      <div class="out" style="padding:8px;overflow:auto">
-        <table id="termsTable" class="table-terms">
-          <thead><tr id="posHeadRow"></tr></thead>
-          <tbody id="posBody"></tbody>
+      <!-- タブ -->
+      <div id="tabs" class="tabs"></div>
+
+      <!-- 検索 -->
+      <div class="searchRow">
+        <input id="searchBox" type="text" placeholder="検索（用語・推奨表記にマッチ）">
+        <span id="tabCount" class="muted-sm"></span>
+      </div>
+
+      <!-- 表 -->
+      <div class="tableWrap">
+        <table class="terms">
+          <thead>
+            <tr>
+              <th class="td-initial">読み</th>
+              <th class="td-word">チェック</th>
+              <th class="td-suggest">推奨表記</th>
+              <th class="td-del">削除</th>
+            </tr>
+          </thead>
+          <tbody id="termsTbody"></tbody>
         </table>
       </div>
     </div>
   </aside>
-  <button id="drawerHandle" class="drawerHandle">◁ 用語一覧</button>
+
+  <!-- ◁ / ▷：開閉兼用ハンドル（記号のみ） -->
+  <button id="drawerHandle" class="drawerHandle" aria-label="用語一覧を開く">◁</button>
 
 <script>
 /* =========================
    ストレージ / データ構造
 ========================= */
-const LS_KEY = 'proof_terms.v3';
+const LS_KEY = 'proof_terms.v4';
 /** term = {
  *  id: number, term: string, suggest: string,
  *  yomi: string(ひらがな), pos: string, enabled: true
@@ -233,16 +269,30 @@ const $add   = document.getElementById('addBtn');
 
 const $drawer = document.getElementById('drawer');
 const $drawerHandle = document.getElementById('drawerHandle');
-const $closeDrawer = document.getElementById('closeDrawer');
-const $posHeadRow = document.getElementById('posHeadRow');
-const $posBody = document.getElementById('posBody');
+
+const $tabs = document.getElementById('tabs');
+const $search = document.getElementById('searchBox');
+const $tabCount = document.getElementById('tabCount');
+const $termsTbody = document.getElementById('termsTbody');
 
 /* =========================
    初期化
 ========================= */
+let activePos = POS_ORDER[0]; // デフォルトは先頭の品詞タブ
 (function init(){
   const raw = localStorage.getItem(LS_KEY);
   if(raw){ try{ terms = JSON.parse(raw) || []; }catch{} }
+  if(!terms.length){
+    // 体験用サンプル
+    terms = [
+      { id: 1, term:'...', suggest:'……', yomi:'てんてんてん', pos:'記号', enabled:true },
+      { id: 2, term:'時々', suggest:'ときどき', yomi:'ときどき', pos:'副詞', enabled:true },
+      { id: 3, term:'又は', suggest:'または', yomi:'または', pos:'接続詞', enabled:true },
+      { id: 4, term:'稀に', suggest:'まれに', yomi:'まれに', pos:'副詞', enabled:true }
+    ];
+    saveTerms();
+  }
+  renderTabs();
   renderTermsTable();
 })();
 
@@ -251,14 +301,23 @@ const $posBody = document.getElementById('posBody');
 ========================= */
 function saveTerms(){ localStorage.setItem(LS_KEY, JSON.stringify(terms)); }
 function escapeHtml(s=''){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-function csvEscape(s){ if(s==null) return ''; s=String(s).replace(/"/g,'""'); return `"${s}"`; }
 function toLineCol(text, index){ let line=1,col=1; for(let i=0;i<index;i++){ if(text[i]==='\n'){ line++; col=1; } else col++; } return {line,col}; }
 function getCtx(text, start, end, pad=16){ const s=Math.max(0,start-pad), e=Math.min(text.length,end+pad); const L=text.slice(s,start), M=text.slice(start,end), R=text.slice(end,e); return `${L}[${M}]${R}`.replace(/\n/g,'⏎'); }
 function escapeReg(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
 function isHiragana(s){ return /^[ぁ-ゖー]+$/.test(s); } // ひらがな + 長音
+function initialKana(yomi){
+  // 読みの先頭を正規化して「段」見出しに使う
+  if(!yomi) return 'その他';
+  const ch = yomi[0];
+  const map = {'ゔ':'う','が':'か','ぎ':'き','ぐ':'く','げ':'け','ご':'こ','ざ':'さ','じ':'し','ず':'す','ぜ':'せ','ぞ':'そ','だ':'た','ぢ':'ち','づ':'つ','で':'て','ど':'と','ば':'は','び':'ひ','ぶ':'ふ','べ':'へ','ぼ':'ほ','ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ','ゃ':'や','ゅ':'ゆ','ょ':'よ','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','っ':'つ'};
+  const base = map[ch] || ch;
+  const set = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
+  return set.includes(base) ? base : 'その他';
+}
+function kanaSortKey(y){ return y || ''; }
 
 /* =========================
-   3 & 7: 用語登録 / 一覧
+   3 & 7: 用語登録 / テーブル
 ========================= */
 // 登録
 $add.addEventListener('click', ()=>{
@@ -270,52 +329,86 @@ $add.addEventListener('click', ()=>{
 
   const obj = { id: Date.now(), term: t, suggest: ($fSug.value||'').trim(), yomi: y, pos: $fPos.value, enabled: true };
   terms.push(obj);
-  saveTerms(); renderTermsTable();
+  saveTerms();
+
+  // UI反映：該当品詞タブへ切替 → ドロワーを開いてその段へスクロール
+  activePos = obj.pos;
+  renderTabs();
+  renderTermsTable();
+  openDrawer();
+  // 段の一番上へ
+  const row = document.querySelector(`[data-init="${initialKana(obj.yomi)}"]`);
+  if(row){ row.scrollIntoView({behavior:'smooth', block:'start'}); }
+
+  // 入力リセット
   $fTerm.value = $fSug.value = $fYomi.value = '';
 });
 
-// 一覧（右ドロワー）の描画：品詞カラム×よみ順
-function renderTermsTable(){
-  // 品詞→配列の辞書化
-  const groups = {};
-  POS_ORDER.forEach(p=> groups[p]=[]);
-  for(const t of terms){ (groups[t.pos] || (groups[t.pos]=[])).push(t); }
-  POS_ORDER.forEach(p=> groups[p].sort((a,b)=> a.yomi.localeCompare(b.yomi,'ja')));
+// タブ描画
+function renderTabs(){
+  // 各品詞の件数
+  const counts = {};
+  POS_ORDER.forEach(p=> counts[p]=0);
+  for(const t of terms){ if(t.enabled !== false){ counts[t.pos] = (counts[t.pos]||0) + 1; } }
 
-  // ヘッダ
-  $posHeadRow.innerHTML = POS_ORDER.map(p=> `<th>${p}</th>`).join('');
+  $tabs.innerHTML = POS_ORDER.map(p=>{
+    const active = (p===activePos) ? 'tab active' : 'tab';
+    return `<button class="${active}" data-pos="${p}">${p}<span class="count">${counts[p]||0}</span></button>`;
+  }).join('');
 
-  // 行数（各品詞の最大件数）
-  const rows = Math.max(0, ...POS_ORDER.map(p=> groups[p].length));
-  let bodyHtml = '';
-  for(let r=0;r<rows;r++){
-    bodyHtml += '<tr>';
-    for(const pos of POS_ORDER){
-      const item = groups[pos][r];
-      if(item){
-        bodyHtml += `<td>
-          <span class="chip mono">${escapeHtml(item.term)}${item.suggest?`<span class="muted">→</span> ${escapeHtml(item.suggest)}`:''}
-            <button class="del" title="削除" data-del="${item.id}">×</button>
-          </span>
-          <div class="muted" style="font-size:12px;margin-top:2px">よみ：${escapeHtml(item.yomi)}</div>
-        </td>`;
-      }else{
-        bodyHtml += '<td></td>';
-      }
-    }
-    bodyHtml += '</tr>';
-  }
-  $posBody.innerHTML = bodyHtml;
-
-  // 削除ハンドラ
-  $posBody.querySelectorAll('[data-del]').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      const id = Number(e.currentTarget.getAttribute('data-del'));
-      const idx = terms.findIndex(x=>x.id===id);
-      if(idx>=0){ terms.splice(idx,1); saveTerms(); renderTermsTable(); }
+  $tabs.querySelectorAll('[data-pos]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      activePos = btn.getAttribute('data-pos');
+      renderTabs();
+      renderTermsTable();
     });
   });
 }
+
+// テーブル描画（アクティブな品詞のみ表示、検索適用、読み頭文字でグループ化）
+function renderTermsTable(){
+  const q = ($search.value||'').trim().toLowerCase();
+  const list = terms.filter(t=> t.pos===activePos && t.enabled!==false).filter(t=>{
+    if(!q) return true;
+    return (t.term||'').toLowerCase().includes(q) || (t.suggest||'').toLowerCase().includes(q);
+  });
+  // 読みでソート
+  list.sort((a,b)=> kanaSortKey(a.yomi).localeCompare(kanaSortKey(b.yomi),'ja'));
+
+  // 件数表示
+  $tabCount.textContent = `${list.length} 件`;
+
+  // 行生成（頭文字の行だけ初期表示、それ以外は空欄 ※続き記号なし）
+  let html = '';
+  let prevInit = null;
+  for(const item of list){
+    const init = initialKana(item.yomi);
+    const initCell = (init!==prevInit) ? `<td class="td-initial" data-init="${init}">${init}</td>` : `<td class="td-initial"></td>`;
+    html += `<tr>
+      ${initCell}
+      <td class="td-word mono">${escapeHtml(item.term)}</td>
+      <td class="td-suggest mono">${escapeHtml(item.suggest||'')}</td>
+      <td class="td-del"><button class="del" title="削除" data-del="${item.id}">×</button></td>
+    </tr>`;
+    prevInit = init;
+  }
+  if(!list.length){
+    html = `<tr><td colspan="4" class="muted" style="padding:16px">この品詞には登録がありません。</td></tr>`;
+  }
+  $termsTbody.innerHTML = html;
+
+  // 削除
+  $termsTbody.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      const id = Number(e.currentTarget.getAttribute('data-del'));
+      const idx = terms.findIndex(x=>x.id===id);
+      if(idx>=0){ terms.splice(idx,1); saveTerms(); renderTabs(); renderTermsTable(); }
+    });
+  });
+}
+
+// 検索イベント
+$search.addEventListener('input', renderTermsTable);
 
 /* =========================
    2: ジャンプ機能（← / →）
@@ -327,7 +420,7 @@ let activeRange = {start:-1,end:-1};
 function updateHitState(){
   const total = issues.length;
   const idx = currentHit>=0 ? currentHit+1 : 0;
-  document.getElementById('hitState').textContent = total ? `${idx}/${total}` : '';
+  $hitState.textContent = total ? `${idx}/${total}` : '';
 }
 
 function setActiveRange(start,end){
@@ -372,11 +465,10 @@ function run(){
   const marks = new Array(text.length).fill(false);
   const found = [];
 
-  // 用語の literal マッチ（語境界の区別は日本語では基本なし）
   for(const t of terms){
     if(!t.enabled) continue;
     if(!t.term) continue;
-    const re = new RegExp(escapeReg(t.term), 'g'); // 大文字小文字は日本語なので省略
+    const re = new RegExp(escapeReg(t.term), 'g');
     let m;
     while((m=re.exec(text))){
       const start = m.index;
@@ -394,7 +486,7 @@ function run(){
     }
   }
 
-  // ハイライト描画（選択中のみ色変更できるよう、1文字ずつ mark）
+  // ハイライト
   let html = '';
   for(let i=0;i<text.length;i++){
     const ch = text[i];
@@ -403,7 +495,7 @@ function run(){
   }
   $highlight.innerHTML = html;
 
-  // 一覧描画
+  // 一覧
   found.sort((a,b)=> a.start-b.start);
   $tbody.innerHTML = '';
   for(const it of found){
@@ -424,7 +516,6 @@ function run(){
   updateHitState();
   if(currentHit>=0) focusHit(currentHit);
 }
-
 function updateCount(n){ $countPill.textContent = `問題: ${n}件`; }
 
 /* =========================
@@ -442,21 +533,18 @@ window.addEventListener('keydown', (e)=>{
 });
 
 /* =========================
-   5: 右ドロワー開閉
+   5: 右ドロワー開閉（◁ / ▷）
 ========================= */
-function openDrawer(){ $drawer.classList.add('open'); $drawer.setAttribute('aria-hidden','false'); }
-function closeDrawer(){ $drawer.classList.remove('open'); $drawer.setAttribute('aria-hidden','true'); }
-$drawerHandle.addEventListener('click', openDrawer);
-$closeDrawer.addEventListener('click', closeDrawer);
+function openDrawer(){ $drawer.classList.add('open'); $drawer.setAttribute('aria-hidden','false'); $drawerHandle.textContent='▷'; $drawerHandle.setAttribute('aria-label','用語一覧を閉じる'); }
+function closeDrawer(){ $drawer.classList.remove('open'); $drawer.setAttribute('aria-hidden','true'); $drawerHandle.textContent='◁'; $drawerHandle.setAttribute('aria-label','用語一覧を開く'); }
+function toggleDrawer(){ ($drawer.classList.contains('open') ? closeDrawer : openDrawer)(); }
+$drawerHandle.addEventListener('click', toggleDrawer);
 
-/* 体験用のプリセットが何もなければ、1つだけサンプルを用意 */
-if(!terms.length){
-  terms = [
-    { id: 1, term:'...', suggest:'……', yomi:'てんてんてん', pos:'記号', enabled:true },
-    { id: 2, term:'時々', suggest:'ときどき', yomi:'ときどき', pos:'副詞', enabled:true }
-  ];
-  saveTerms();
-  renderTermsTable();
+/* 便利：ページロード時、タブ状態に合わせて件数初期表示 */
+function updateBadgeCounts(){
+  const counts = {};
+  POS_ORDER.forEach(p=> counts[p]=0);
+  for(const t of terms){ if(t.enabled !== false){ counts[t.pos] = (counts[t.pos]||0) + 1; } }
 }
 </script>
 </body>
